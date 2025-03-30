@@ -1,3 +1,4 @@
+from enum import Enum
 import EVE_DAO.orm as db
 
 class Region:
@@ -42,6 +43,15 @@ class System:
                 f'{self.constellation.name}[{self.constellation.pk}] | '\
                 f'{self.constellation.region.name}[{self.constellation.region.pk}]')
 
+class Galaxy(Enum):
+    NEW_EDEN = 1
+    ANOIKIS = 2
+    ABYSSAL_SPACE = 3
+    VOID_SPACE  = 4
+    DEATHLESS_SPACE = 5
+    JOVIAN_SPACE = 6
+    POCHVEN_SPACE = 7
+
 class SystemNameError(Exception):
     pass
 
@@ -69,3 +79,29 @@ def search_system(name: str) -> list[System]:
         systems.append(system)
     return systems
 
+def get_systems(galaxy: Galaxy, verbose: bool = False) -> list[System]:
+    systems = []
+    systems_dict = db.get_systems(galaxy.value, verbose=verbose)
+    i = 1
+    for system_dict in systems_dict:
+        if verbose:
+            print(f' Building objects: {i}/{len(systems_dict)}', end='\r')
+            i += 1
+        constellation_dict = system_dict['constellation']
+        region_dict = constellation_dict['region']
+        region = Region(region_dict['region_id'],
+                        region_dict['name'])
+        constellation = Constellation(constellation_dict['constellation_id'],
+                                      constellation_dict['name'],
+                                      region)
+        system = System(system_dict['system_id'],
+                        system_dict['name'],
+                        constellation,
+                        system_dict['x'],
+                        system_dict['y'],
+                        system_dict['z'],
+                        system_dict['security'],
+                        system_dict['stargates'])
+        systems.append(system)
+    if verbose: print('')
+    return systems

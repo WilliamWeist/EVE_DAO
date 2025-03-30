@@ -17,15 +17,15 @@ def search_system(str_input: str) -> list[dict]:
             systems = []
             for row in rows:
                 system = {}
-                system["pk"] = row[1]
-                system["name"] = row[2]
-                system["x"] = row[3]
-                system["y"] = row[4]
-                system["z"] = row[5]
-                system["security"] = row[6]
+                system['pk'] = row[1]
+                system['name'] = row[2]
+                system['x'] = row[3]
+                system['y'] = row[4]
+                system['z'] = row[5]
+                system['security'] = row[6]
                 pk_constellation = row[0]
-                system["constellation"] = get_constellation(pk_constellation)
-                system["stargates"] = get_stargates(system["pk"])
+                system['constellation'] = get_constellation(pk_constellation)
+                system['stargates'] = get_stargates(system['pk'])
                 systems.append(system)
     return systems
 
@@ -37,15 +37,15 @@ def get_system(pk: int) -> dict:
                     'WHERE systems.system_id = ?'
             rows = cursor.execute(query, (pk,)).fetchall()
             db_entry = rows[0]
-            system["pk"] = db_entry[1]
-            system["name"] = db_entry[2]
-            system["x"] = db_entry[3]
-            system["y"] = db_entry[4]
-            system["z"] = db_entry[5]
-            system["security"] = db_entry[6]
+            system['pk'] = db_entry[1]
+            system['name'] = db_entry[2]
+            system['x'] = db_entry[3]
+            system['y'] = db_entry[4]
+            system['z'] = db_entry[5]
+            system['security'] = db_entry[6]
             pk_constellation = db_entry[0]
-            system["constellation"] = get_constellation(pk_constellation)
-            system["stargates"] = get_stargates(system["pk"])
+            system['constellation'] = get_constellation(pk_constellation)
+            system['stargates'] = get_stargates(system['pk'])
     return system
 
 def get_constellation(pk: int) -> dict:
@@ -56,10 +56,10 @@ def get_constellation(pk: int) -> dict:
                     'FROM constellations WHERE constellations.constellation_id = ?'
             rows = cursor.execute(query, (pk,)).fetchall()
             db_entry = rows[0]
-            constellation["pk"] = pk
-            constellation["name"] = db_entry[0]
+            constellation['pk'] = pk
+            constellation['name'] = db_entry[0]
             region_pk = db_entry[1]
-            constellation["region"] = get_region(region_pk)
+            constellation['region'] = get_region(region_pk)
     return constellation
 
 def get_region(pk: int) -> dict:
@@ -69,8 +69,8 @@ def get_region(pk: int) -> dict:
             query = 'SELECT regions.name FROM regions WHERE regions.region_id = ?'
             rows = cursor.execute(query, (pk,)).fetchall()
             db_entry = rows[0]
-            region["pk"] = pk
-            region["name"] = db_entry[0]
+            region['pk'] = pk
+            region['name'] = db_entry[0]
     return region
 
 def get_stargates(pk: int) -> list[int]:
@@ -83,7 +83,47 @@ def get_stargates(pk: int) -> list[int]:
                 stargates.append(row[0])
     return stargates
 
-def get_systems() -> list[dict]:
+def get_systems(galaxy_pk: int, verbose: bool = False) -> list[dict]:
     systems = []
-
+    with closing(sqlite3.connect(str(path_db))) as connection:
+        with closing(connection.cursor()) as cursor:
+            query = 'SELECT ' \
+                        'regions.region_id, ' \
+                        'regions.name, ' \
+                        'constellations.constellation_id, ' \
+                        'constellations.name, ' \
+                        'systems.system_id, ' \
+                        'systems.name, ' \
+                        'systems.x, ' \
+                        'systems.y, ' \
+                        'systems.z, ' \
+                        'systems.security ' \
+                    'FROM systems ' \
+                    'INNER JOIN constellations ON systems.constellation_id = constellations.constellation_id ' \
+                    'INNER JOIN regions ON constellations.region_id = regions.region_id ' \
+                    'WHERE regions.galaxy_id = ?'
+            rows = cursor.execute(query, (galaxy_pk, )).fetchall()
+            i = 1
+            for row in rows:
+                if verbose:
+                    print(f' Loading data: {i}/{len(rows)}', end='\r')
+                    i += 1
+                region = {}
+                region['region_id'] = row[0]
+                region['name'] = row[1]
+                constellation = {}
+                constellation['constellation_id'] = row[2]
+                constellation['name'] = row[3]
+                constellation['region'] = region
+                system = {}
+                system['system_id'] = row[4]
+                system['name'] = row[5]
+                system['x'] = row[6]
+                system['y'] = row[7]
+                system['z'] = row[8]
+                system['security'] = row[9]
+                system['stargates'] = get_stargates(system['system_id'])
+                system['constellation'] = constellation
+                systems.append(system)
+            if verbose: print('')
     return systems
