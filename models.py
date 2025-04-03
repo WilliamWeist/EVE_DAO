@@ -1,3 +1,4 @@
+import time
 from enum import Enum
 import EVE_DAO.orm as db
 
@@ -82,7 +83,9 @@ def search_system(name: str) -> list[System]:
 def get_systems(galaxy: Galaxy, verbose: bool = False) -> list[System]:
     systems = []
     systems_dict = db.get_systems(galaxy.value, verbose=verbose)
-    i = 1
+    if verbose:
+        i = 1
+        start_time = time.time()
     for system_dict in systems_dict:
         if verbose:
             print(f' Building objects: {i}/{len(systems_dict)}', end='\r')
@@ -103,5 +106,8 @@ def get_systems(galaxy: Galaxy, verbose: bool = False) -> list[System]:
                         system_dict['security'],
                         system_dict['stargates'])
         systems.append(system)
-    if verbose: print('')
+    if verbose:
+        exectime = round(time.time() - start_time, 2)
+        print('                                                                             ', end='\r')
+        print(f'Building objects: {i-1}/{len(systems_dict)}\texec time: {exectime}s')
     return systems

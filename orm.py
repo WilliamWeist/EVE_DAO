@@ -1,4 +1,4 @@
-import sqlite3
+import sqlite3, time
 from pathlib import Path
 from contextlib import closing
 
@@ -103,7 +103,9 @@ def get_systems(galaxy_pk: int, verbose: bool = False) -> list[dict]:
                     'INNER JOIN regions ON constellations.region_id = regions.region_id ' \
                     'WHERE regions.galaxy_id = ?'
             rows = cursor.execute(query, (galaxy_pk, )).fetchall()
-            i = 1
+            if verbose:
+                i = 1
+                start_time = time.time()
             for row in rows:
                 if verbose:
                     print(f' Loading data: {i}/{len(rows)}', end='\r')
@@ -125,5 +127,8 @@ def get_systems(galaxy_pk: int, verbose: bool = False) -> list[dict]:
                 system['stargates'] = get_stargates(system['system_id'])
                 system['constellation'] = constellation
                 systems.append(system)
-            if verbose: print('')
+            if verbose:
+                exectime = round(time.time() - start_time, 2)
+                print('                                                                             ', end='\r')
+                print(f'Loading data: {i-1}/{len(rows)}\texec time: {exectime}s')
     return systems
