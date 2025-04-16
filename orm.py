@@ -108,7 +108,7 @@ def get_systems(galaxy_pk: int, verbose: bool = False) -> list[dict]:
                 start_time = time.time()
             for row in rows:
                 if verbose:
-                    print(f' Loading data: {i}/{len(rows)}', end='\r')
+                    print(f' Loading systems data: {i}/{len(rows)}', end='\r')
                     i += 1
                 region = {}
                 region['region_id'] = row[0]
@@ -130,5 +130,134 @@ def get_systems(galaxy_pk: int, verbose: bool = False) -> list[dict]:
             if verbose:
                 exectime = round(time.time() - start_time, 2)
                 print('                                                                             ', end='\r')
-                print(f'Loading data: {i-1}/{len(rows)}\texec time: {exectime}s')
+                print(f'Loading systems data: {i-1}/{len(rows)}\texec time: {exectime}s')
     return systems
+
+def get_regions(galaxy_pk: int) -> list[dict]:
+    regions = []
+    with closing(sqlite3.connect(str(path_db))) as connection:
+        with closing(connection.cursor()) as cursor:
+            query = 'SELECT ' \
+                        'regions.region_id, ' \
+                        'regions.name ' \
+                    'FROM regions ' \
+                    'WHERE regions.galaxy_id = ?'
+            rows = cursor.execute(query, (galaxy_pk, )).fetchall()
+            if len(rows) == 0: return regions
+            for row in rows:
+                region = {}
+                region['pk'] = row[0]
+                region['name'] = row[1]
+                regions.append(region)
+    return regions
+
+def get_item(item_search):
+    item = {}
+    with closing(sqlite3.connect(str(path_db))) as connection:
+        with closing(connection.cursor()) as cursor:
+            query = 'SELECT ' \
+                        'items.item_id, ' \
+                        'items.name, ' \
+                        'items.description, ' \
+                        'items.group_id, ' \
+                        'item_groups.name, ' \
+                        'item_groups.category_id, ' \
+                        'group_categories.name ' \
+                    'FROM items ' \
+                    'INNER JOIN item_groups ON items.group_id = item_groups.group_id ' \
+                    'INNER JOIN group_categories ON item_groups.category_id = group_categories.category_id '
+            if type(item_search) is str:
+                query = query + 'WHERE items.name = ?'
+            elif type(item_search) is int:
+                query = query + 'WHERE items.item_id = ?'
+            else:
+                return None
+            rows = cursor.execute(query, (item_search,)).fetchall()
+            if len(rows) == 0: return None
+            db_entry = rows[0]
+            item['pk'] = db_entry[0]
+            item['name'] = db_entry[1]
+            item['description'] = db_entry[2]
+            item['group'] = {}
+            item['group']['pk'] = db_entry[3]
+            item['group']['name'] = db_entry[4]
+            item['group']['category'] = {}
+            item['group']['category']['pk'] = db_entry[5]
+            item['group']['category']['name'] = db_entry[6]
+    return item
+
+def get_items_from_group(search_group) -> list[dict]:
+    items: list[dict] = []
+    with closing(sqlite3.connect(str(path_db))) as connection:
+        with closing(connection.cursor()) as cursor:
+            query = 'SELECT ' \
+                        'items.item_id, ' \
+                        'items.name, ' \
+                        'items.description, ' \
+                        'items.group_id, ' \
+                        'item_groups.name, ' \
+                        'item_groups.category_id, ' \
+                        'group_categories.name ' \
+                    'FROM items ' \
+                    'INNER JOIN item_groups ON items.group_id = item_groups.group_id ' \
+                    'INNER JOIN group_categories ON item_groups.category_id = group_categories.category_id '
+            if type(search_group) is str:
+                query = query + 'WHERE item_groups.name = ? '
+            elif type(search_group) is int:
+                query = query + 'WHERE item_groups.group_id = ? '
+            else:
+                return items
+            query = query + 'ORDER BY items.item_id'
+            rows = cursor.execute(query, (search_group,)).fetchall()
+            if len(rows) == 0: return items
+            for row in rows:
+                item = {}
+                item['pk'] = row[0]
+                item['name'] = row[1]
+                item['description'] = row[2]
+                item['group'] = {}
+                item['group']['pk'] = row[3]
+                item['group']['name'] = row[4]
+                item['group']['category'] = {}
+                item['group']['category']['pk'] = row[5]
+                item['group']['category']['name'] = row[6]
+                items.append(item)
+    return items
+
+def get_items_from_category(search_category) -> list[dict]:
+    items: list[dict] = []
+    with closing(sqlite3.connect(str(path_db))) as connection:
+        with closing(connection.cursor()) as cursor:
+            query = 'SELECT ' \
+                        'items.item_id, ' \
+                        'items.name, ' \
+                        'items.description, ' \
+                        'items.group_id, ' \
+                        'item_groups.name, ' \
+                        'item_groups.category_id, ' \
+                        'group_categories.name ' \
+                    'FROM items ' \
+                    'INNER JOIN item_groups ON items.group_id = item_groups.group_id ' \
+                    'INNER JOIN group_categories ON item_groups.category_id = group_categories.category_id '
+            if type(search_category) is str:
+                query = query + 'WHERE group_categories.name = ? '
+            elif type(search_category) is int:
+                query = query + 'WHERE group_categories.category_id = ? '
+            else:
+                return items
+            query = query + 'ORDER BY items.item_id'
+            rows = cursor.execute(query, (search_category,)).fetchall()
+            if len(rows) == 0: return items
+            for row in rows:
+                item = {}
+                item['pk'] = row[0]
+                item['name'] = row[1]
+                item['description'] = row[2]
+                item['group'] = {}
+                item['group']['pk'] = row[3]
+                item['group']['name'] = row[4]
+                item['group']['category'] = {}
+                item['group']['category']['pk'] = row[5]
+                item['group']['category']['name'] = row[6]
+                items.append(item)
+    return items
